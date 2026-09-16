@@ -142,11 +142,13 @@ def generate_html(lines):
 
     rows_html = "".join(reversed(rows))
 
+    target_js = escape(URL, quote=True)
+
     html = f"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="60">
+<meta http-equiv="refresh" content="300">
 <title>Live Website Monitor</title>
 <style>
 body {{
@@ -182,20 +184,52 @@ td {{
     color:#9ca3af;
     width:150px;
 }}
+.badge {{
+    display:inline-block;
+    font-size:13px;
+    font-weight:normal;
+    color:#9ca3af;
+    margin-left:10px;
+}}
+#liveAlertBanner {{
+    display:none;
+    background:#7f1d1d;
+    color:white;
+    padding:15px;
+    border-radius:8px;
+    margin-bottom:20px;
+    font-weight:bold;
+}}
 </style>
 </head>
 <body>
 <div class="container">
+
+<div id="liveAlertBanner">&#9888;&#65039; Site appears DOWN for 3+ consecutive live checks (from your browser)</div>
+
 <div class="card">
-    <h1>LIVE WEBSITE MONITOR</h1>
+    <h1>LIVE (checked from your browser) <span class="badge" id="liveInterval"></span></h1>
+    <div class="status" id="liveStatus">&#9899; Checking...</div>
+    <p id="liveUpdated">Last live check: --</p>
+    <p>Target: {escape(URL)}</p>
+    <table>
+        <tr>
+            <th align="left">Time</th>
+            <th align="left">Status</th>
+        </tr>
+        <tbody id="liveRows"></tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h1>LAST KNOWN (GitHub Actions)</h1>
     <div class="status">
         {icon} {status}
     </div>
-    <p>Last update: {latest["time"] if latest else "N/A"} (checked every ~5 min by GitHub Actions)</p>
-    <p>Target: {escape(URL)}</p>
+    <p>Last update: {latest["time"] if latest else "N/A"} (checked every ~5 min in the background, even with this page closed)</p>
 </div>
 <div class="card">
-    <h2>Activity (most recent first)</h2>
+    <h2>History (most recent first)</h2>
     <table>
         <tr>
             <th align="left">Time</th>
@@ -205,6 +239,59 @@ td {{
     </table>
 </div>
 </div>
+
+<script>
+(function() {{
+    var TARGET_URL = "{target_js}".split("#")[0];
+    var INTERVAL_MS = 5000;
+    var MAX_ROWS = 30;
+    var offlineStreak = 0;
+    var rows = [];
+
+    document.getElementById('liveInterval').textContent = '(checking every ' + (INTERVAL_MS / 1000) + 's)';
+
+    function fmtTime(d) {{
+        return d.toTimeString().slice(0, 8);
+    }}
+
+    function render(status, time) {{
+        var isOnline = status === 'Online';
+        var statusEl = document.getElementById('liveStatus');
+        statusEl.textContent = (isOnline ? '\\uD83D\\uDFE2 ' : '\\uD83D\\uDD34 ') + status;
+        statusEl.style.color = isOnline ? '#22c55e' : '#ef4444';
+        document.getElementById('liveUpdated').textContent = 'Last live check: ' + time;
+
+        rows.unshift({{time: time, status: status}});
+        if (rows.length > MAX_ROWS) rows.pop();
+
+        document.getElementById('liveRows').innerHTML = rows.map(function(r) {{
+            var c = r.status === 'Online' ? '#22c55e' : '#ef4444';
+            var i = r.status === 'Online' ? '\\uD83D\\uDFE2' : '\\uD83D\\uDD34';
+            return '<tr><td>' + r.time + '</td><td>' + i + ' <span style="color:' + c + '">' + r.status + '</span></td></tr>';
+        }}).join('');
+
+        offlineStreak = isOnline ? 0 : offlineStreak + 1;
+        document.getElementById('liveAlertBanner').style.display = offlineStreak >= 3 ? 'block' : 'none';
+    }}
+
+    function check() {{
+        var controller = new AbortController();
+        var timeoutId = setTimeout(function() {{ controller.abort(); }}, 8000);
+        fetch(TARGET_URL, {{mode: 'no-cors', cache: 'no-store', signal: controller.signal}})
+            .then(function() {{
+                clearTimeout(timeoutId);
+                render('Online', fmtTime(new Date()));
+            }})
+            .catch(function() {{
+                clearTimeout(timeoutId);
+                render('Offline', fmtTime(new Date()));
+            }});
+    }}
+
+    check();
+    setInterval(check, INTERVAL_MS);
+}})();
+</script>
 </body>
 </html>
 """
