@@ -227,20 +227,18 @@ def main():
         and all(s == "Offline" for s in recent)
     )
 
-    if is_down_streak:
-        if not state.get("alerted"):
-            send_telegram(
-                f"⚠️ Site DOWN: {OFFLINE_STREAK_THRESHOLD} consecutive "
-                f"offline checks for {URL}"
-            )
-            state["alerted"] = True
-            save_state(state)
-    else:
+    if is_down_streak and not state.get("alerted"):
+        send_telegram(
+            f"⚠️ Site DOWN: {OFFLINE_STREAK_THRESHOLD} consecutive "
+            f"offline checks for {URL}"
+        )
+        state["alerted"] = True
+    elif not is_down_streak:
         if state.get("alerted"):
             send_telegram(f"✅ Site back ONLINE: {URL}")
-        if state.get("alerted") is not False:
-            state["alerted"] = False
-            save_state(state)
+        state["alerted"] = False
+
+    save_state(state)
 
 
 if __name__ == "__main__":
