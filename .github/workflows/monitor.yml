@@ -22,17 +22,32 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run check
+      - name: Run check and push results
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python check_and_update.py
-
-      - name: Commit and push results
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add status_log.txt index.html alert_state.json
-          git diff --cached --quiet || git commit -m "Update monitor status"
-          git pull --rebase
-          git push
+
+          for i in 1 2 3 4 5; do
+            python check_and_update.py
+
+            git add status_log.txt index.html alert_state.json
+            if git diff --cached --quiet; then
+              echo "No changes to commit"
+              break
+            fi
+
+            git commit -m "Update monitor status"
+
+            if git push; then
+              echo "Pushed successfully"
+              break
+            fi
+
+            echo "Push rejected (remote moved on), resetting to latest and retrying (attempt $i)"
+            git reset --hard HEAD~1
+            git fetch origin master
+            git reset --hard origin/master
+          done
