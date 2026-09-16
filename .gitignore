@@ -1,0 +1,4 @@
+monitor.pid
+monitor.out
+monitor.err
+__pycache__/
