@@ -1295,3 +1295,4 @@ Monitoring https://www.mantrishop.in/#/pages/wingo1min/index every 60s. Press Ct
 10:06:42  Site: Offline
 10:23:08  Site: Offline
 10:37:55  Site: Offline
+10:51:07  Site: Offline
