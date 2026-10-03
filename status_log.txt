@@ -1,6 +1,5 @@
 15:53:27  Site: Online
 15:53:27  Site: Online
-15:53:27  Site: Online
 15:53:58  Site: Offline
 15:54:27  Site: Online
 15:54:28  Site: Online
@@ -1998,3 +1997,4 @@ Monitoring https://www.mantrishop.in/#/pages/wingo1min/index every 60s. Press Ct
 00:53:48  Site: Offline
 01:06:59  Site: Offline
 01:23:41  Site: Offline
+01:39:24  Site: Offline
